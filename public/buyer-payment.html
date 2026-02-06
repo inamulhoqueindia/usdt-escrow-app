@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Buyer Payment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+    h2 {
+      margin-bottom: 15px;
+    }
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>💸 Buyer Payment</h2>
+<div id="list">Loading...</div>
+
+<script>
+async function loadPayments() {
+  const res = await fetch("/api/buyer/open");
+  const data = await res.json();
+
+  const box = document.getElementById("list");
+  box.innerHTML = "";
+
+  if (data.length === 0) {
+    box.innerHTML = "<p>No open bookings</p>";
+    return;
+  }
+
+  data.forEach(tx => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <p><b>Transaction ID:</b> ${tx.id}</p>
+      <p><b>Amount:</b> ₹${tx.amount}</p>
+
+      <input id="utr-${tx.id}" placeholder="Enter UTR ID">
+      <input id="file-${tx.id}" type="file">
+
+      <button onclick="submitPayment(${tx.id})">
+        Submit Payment
+      </button>
+    `;
+
+    box.appendChild(div);
+  });
+}
+
+async function submitPayment(id) {
+  const utr = document.getElementById("utr-" + id).value;
+  const file = document.getElementById("file-" + id).files[0];
+
+  if (!utr || !file) {
+    alert("UTR and screenshot required");
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append("id", id);
+  fd.append("utr", utr);
+  fd.append("proof", file);
+
+  const res = await fetch("/api/buyer/pay", {
+    method: "POST",
+    body: fd
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    alert("Payment submitted successfully");
+    loadPayments();
+  } else {
+    alert("Payment failed");
+  }
+}
+
+loadPayments();
+</script>
+
+</body>
+</html>
