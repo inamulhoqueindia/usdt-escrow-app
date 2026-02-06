@@ -19,11 +19,8 @@ const db = mysql.createConnection({
 });
 
 db.connect((err) => {
-  if (err) {
-    console.error("MySQL connection failed:", err);
-  } else {
-    console.log("MySQL connected");
-  }
+  if (err) console.error("MySQL connection failed:", err);
+  else console.log("MySQL connected");
 });
 
 /* =========================
@@ -105,30 +102,24 @@ app.post("/api/login", (req, res) => {
 app.post("/api/booking/create", (req, res) => {
   const { buyer_id, seller_id, amount } = req.body;
 
-  // seller already locked?
   db.query(
     "SELECT * FROM transactions WHERE seller_id=? AND status='OPEN'",
     [seller_id],
     (err, rows) => {
-      if (rows.length) {
+      if (rows.length)
         return res.status(400).json({ error: "Seller already booked" });
-      }
 
-      // create booking
       db.query(
         "INSERT INTO transactions (buyer_id, seller_id, amount) VALUES (?,?,?)",
         [buyer_id, seller_id, amount],
         (e, result) => {
           const txId = result.insertId;
 
-          // 🔥 AUTO-APPROVE TIMER (3 MINUTES)
+          // ⏱️ AUTO COMPLETE AFTER 3 MIN
           setTimeout(() => {
             db.query(
               "UPDATE transactions SET status='COMPLETED' WHERE id=? AND status='OPEN'",
-              [txId],
-              () => {
-                console.log("Auto-approved booking:", txId);
-              }
+              [txId]
             );
           }, 3 * 60 * 1000);
 
@@ -140,72 +131,58 @@ app.post("/api/booking/create", (req, res) => {
 });
 
 /* =========================
-   SELLER APPROVE
+   SELLER APPROVE / REJECT
 ========================= */
 app.post("/api/booking/approve", (req, res) => {
-  const { tx_id } = req.body;
-
   db.query(
     "UPDATE transactions SET status='APPROVED' WHERE id=? AND status='OPEN'",
-    [tx_id],
+    [req.body.tx_id],
     () => res.json({ ok: true })
   );
 });
 
-/* =========================
-   SELLER REJECT
-========================= */
 app.post("/api/booking/reject", (req, res) => {
-  const { tx_id } = req.body;
-
   db.query(
     "UPDATE transactions SET status='REJECTED' WHERE id=? AND status='OPEN'",
-    [tx_id],
+    [req.body.tx_id],
     () => res.json({ ok: true })
   );
 });
 
 /* =========================
-   WALLET CREDIT
+   ADMIN FINAL RELEASE
 ========================= */
-app.post("/api/wallet/add", (req, res) => {
-  const { user_id, amount, note } = req.body;
+app.post("/api/admin/release", (req, res) => {
+  const { tx_id, release_to } = req.body;
+  // release_to = 'BUYER' or 'SELLER'
 
   db.query(
-    "UPDATE users SET wallet = wallet + ? WHERE id=?",
-    [amount, user_id],
-    () => {
-      db.query(
-        "INSERT INTO wallet_ledger (user_id,type,amount,note) VALUES (?,?,?,?)",
-        [user_id, "CREDIT", amount, note || "Wallet credit"],
-        () => res.json({ ok: true })
-      );
-    }
-  );
-});
-
-/* =========================
-   WALLET DEBIT
-========================= */
-app.post("/api/wallet/deduct", (req, res) => {
-  const { user_id, amount, note } = req.body;
-
-  db.query(
-    "SELECT wallet FROM users WHERE id=?",
-    [user_id],
+    "SELECT * FROM transactions WHERE id=?",
+    [tx_id],
     (err, rows) => {
-      if (rows[0].wallet < amount) {
-        return res.status(400).json({ error: "Insufficient balance" });
-      }
+      const tx = rows[0];
+      const userId = release_to === "BUYER" ? tx.buyer_id : tx.seller_id;
 
+      // credit wallet
       db.query(
-        "UPDATE users SET wallet = wallet - ? WHERE id=?",
-        [amount, user_id],
+        "UPDATE users SET wallet = wallet + ? WHERE id=?",
+        [tx.amount, userId],
         () => {
           db.query(
             "INSERT INTO wallet_ledger (user_id,type,amount,note) VALUES (?,?,?,?)",
-            [user_id, "DEBIT", amount, note || "Wallet debit"],
-            () => res.json({ ok: true })
+            [
+              userId,
+              "CREDIT",
+              tx.amount,
+              `Admin release to ${release_to}`
+            ],
+            () => {
+              db.query(
+                "UPDATE transactions SET status='COMPLETED' WHERE id=?",
+                [tx_id],
+                () => res.json({ ok: true })
+              );
+            }
           );
         }
       );
