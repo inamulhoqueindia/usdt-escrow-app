@@ -18,8 +18,8 @@ const db = mysql.createConnection({
   ssl: { rejectUnauthorized: false }
 });
 
-db.connect((err) => {
-  if (err) console.error("MySQL connection failed:", err);
+db.connect(err => {
+  if (err) console.error("MySQL error:", err);
   else console.log("MySQL connected");
 });
 
@@ -31,7 +31,7 @@ app.get("/", (req, res) => {
 });
 
 /* =========================
-   INIT DATABASE
+   INIT DB
 ========================= */
 app.get("/init-db", (req, res) => {
 
@@ -39,7 +39,7 @@ app.get("/init-db", (req, res) => {
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       phone VARCHAR(20),
-      role VARCHAR(20),
+      role ENUM('BUYER','SELLER','ADMIN'),
       wallet DECIMAL(12,2) DEFAULT 0
     )
   `);
@@ -78,7 +78,7 @@ app.post("/api/login", (req, res) => {
   db.query(
     "SELECT * FROM users WHERE phone=? AND role=?",
     [phone, role],
-    (err, rows) => {
+    (e, rows) => {
       if (rows.length) return res.json(rows[0]);
 
       db.query(
@@ -88,7 +88,7 @@ app.post("/api/login", (req, res) => {
           db.query(
             "SELECT * FROM users WHERE phone=? AND role=?",
             [phone, role],
-            (e, r) => res.json(r[0])
+            (x, r) => res.json(r[0])
           );
         }
       );
@@ -97,33 +97,57 @@ app.post("/api/login", (req, res) => {
 });
 
 /* =========================
-   BOOKING CREATE (LOCK)
+   BOOKING CREATE (SECURED)
 ========================= */
 app.post("/api/booking/create", (req, res) => {
   const { buyer_id, seller_id, amount } = req.body;
 
+  // Rule: min & max amount
+  if (amount < 100 || amount > 100000) {
+    return res.status(400).json({ error: "Invalid amount range" });
+  }
+
+  // Rule: seller cannot book self
+  if (buyer_id === seller_id) {
+    return res.status(400).json({ error: "Self booking blocked" });
+  }
+
+  // Rule: seller already locked?
   db.query(
     "SELECT * FROM transactions WHERE seller_id=? AND status='OPEN'",
     [seller_id],
-    (err, rows) => {
-      if (rows.length)
+    (e, rows) => {
+      if (rows.length) {
         return res.status(400).json({ error: "Seller already booked" });
+      }
 
+      // Rule: duplicate booking spam (same buyer-seller-amount)
       db.query(
-        "INSERT INTO transactions (buyer_id, seller_id, amount) VALUES (?,?,?)",
+        "SELECT * FROM transactions WHERE buyer_id=? AND seller_id=? AND amount=? AND created_at > NOW() - INTERVAL 5 MINUTE",
         [buyer_id, seller_id, amount],
-        (e, result) => {
-          const txId = result.insertId;
+        (x, dup) => {
+          if (dup.length) {
+            return res.status(400).json({ error: "Duplicate booking blocked" });
+          }
 
-          // ⏱️ AUTO COMPLETE AFTER 3 MIN
-          setTimeout(() => {
-            db.query(
-              "UPDATE transactions SET status='COMPLETED' WHERE id=? AND status='OPEN'",
-              [txId]
-            );
-          }, 3 * 60 * 1000);
+          db.query(
+            "INSERT INTO transactions (buyer_id, seller_id, amount) VALUES (?,?,?)",
+            [buyer_id, seller_id, amount],
+            (err, result) => {
 
-          res.json({ ok: true, tx_id: txId });
+              const txId = result.insertId;
+
+              // Server-side auto complete
+              setTimeout(() => {
+                db.query(
+                  "UPDATE transactions SET status='COMPLETED' WHERE id=? AND status='OPEN'",
+                  [txId]
+                );
+              }, 3 * 60 * 1000);
+
+              res.json({ ok: true, tx_id: txId });
+            }
+          );
         }
       );
     }
@@ -131,7 +155,7 @@ app.post("/api/booking/create", (req, res) => {
 });
 
 /* =========================
-   SELLER APPROVE / REJECT
+   SELLER ACTION
 ========================= */
 app.post("/api/booking/approve", (req, res) => {
   db.query(
@@ -150,32 +174,25 @@ app.post("/api/booking/reject", (req, res) => {
 });
 
 /* =========================
-   ADMIN FINAL RELEASE
+   ADMIN FINAL RELEASE (ONLY)
 ========================= */
 app.post("/api/admin/release", (req, res) => {
   const { tx_id, release_to } = req.body;
-  // release_to = 'BUYER' or 'SELLER'
 
   db.query(
     "SELECT * FROM transactions WHERE id=?",
     [tx_id],
-    (err, rows) => {
+    (e, rows) => {
       const tx = rows[0];
-      const userId = release_to === "BUYER" ? tx.buyer_id : tx.seller_id;
+      const uid = release_to === "BUYER" ? tx.buyer_id : tx.seller_id;
 
-      // credit wallet
       db.query(
         "UPDATE users SET wallet = wallet + ? WHERE id=?",
-        [tx.amount, userId],
+        [tx.amount, uid],
         () => {
           db.query(
             "INSERT INTO wallet_ledger (user_id,type,amount,note) VALUES (?,?,?,?)",
-            [
-              userId,
-              "CREDIT",
-              tx.amount,
-              `Admin release to ${release_to}`
-            ],
+            [uid, "CREDIT", tx.amount, "Admin final release"],
             () => {
               db.query(
                 "UPDATE transactions SET status='COMPLETED' WHERE id=?",
