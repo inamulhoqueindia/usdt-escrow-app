@@ -1,69 +1,9 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Admin Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="font-family:Arial;background:#f3f4f6;padding:20px;">
-
-<h2>👑 Admin Dashboard</h2>
-
-<div id="txList"></div>
-
-<script>
-async function loadTransactions() {
-  const res = await fetch("/api/admin/transactions");
-  const data = await res.json();
-
-  const box = document.getElementById("txList");
-  box.innerHTML = "";
-
-  data.forEach(tx => {
-    if (tx.status !== "COMPLETED") {
-      const div = document.createElement("div");
-      div.style.background = "white";
-      div.style.padding = "15px";
-      div.style.marginBottom = "10px";
-      div.style.borderRadius = "8px";
-
-      div.innerHTML = `
-        <p><b>TX ID:</b> ${tx.id}</p>
-        <p><b>Buyer ID:</b> ${tx.buyer_id}</p>
-        <p><b>Seller ID:</b> ${tx.seller_id}</p>
-        <p><b>Amount:</b> ₹${tx.amount}</p>
-        <p><b>Status:</b> ${tx.status}</p>
-
-        <button onclick="release(${tx.id}, 'BUYER')" style="width:100%;margin-top:5px;">
-          Release to Buyer
-        </button>
-
-        <button onclick="release(${tx.id}, 'SELLER')" style="width:100%;margin-top:5px;">
-          Release to Seller
-        </button>
-      `;
-      box.appendChild(div);
-    }
-  });
-}
-
-async function release(txId, who) {
-  if (!confirm("Are you sure?")) return;
-
-  await fetch("/api/admin/release", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      tx_id: txId,
-      release_to: who
-    })
-  });
-
-  alert("Amount released to " + who);
-  loadTransactions();
-}
-
-loadTransactions();
-</script>
-
-</body>
+  <head>
+    <title>Admin Test</title>
+  </head>
+  <body>
+    <h1>ADMIN PAGE WORKING</h1>
+  </body>
 </html>
