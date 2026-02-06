@@ -1,12 +1,13 @@
 {
   "name": "usdt-escrow-app",
   "version": "1.0.0",
-  "description": "USDT P2P escrow system",
+  "description": "USDT P2P Escrow System",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "mysql2": "^3.9.7"
   }
 }
