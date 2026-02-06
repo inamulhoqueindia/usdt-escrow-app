@@ -30,9 +30,7 @@ db.connect(err => {
 /* ======================
    FILE UPLOAD
 ====================== */
-const upload = multer({
-  dest: "uploads/"
-});
+const upload = multer({ dest: "uploads/" });
 
 /* ======================
    HEALTH
@@ -46,6 +44,10 @@ app.get("/health", (req, res) => {
 ====================== */
 app.post("/api/booking/create", (req, res) => {
   const { buyer_id, seller_id, amount } = req.body;
+
+  if (!buyer_id || !seller_id || !amount) {
+    return res.json({ ok: false });
+  }
 
   db.query(
     "INSERT INTO transactions (buyer_id, seller_id, amount, status) VALUES (?, ?, ?, 'OPEN')",
@@ -61,7 +63,7 @@ app.post("/api/booking/create", (req, res) => {
 });
 
 /* ======================
-   BUYER OPEN BOOKINGS  ✅ FIX
+   BUYER OPEN BOOKINGS  ✅ THIS WAS MISSING
 ====================== */
 app.get("/api/buyer/open", (req, res) => {
   db.query(
