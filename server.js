@@ -1,37 +1,80 @@
 const express = require("express");
+const mysql = require("mysql2");
 const path = require("path");
-const app = express();
 
+const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ROOT
-app.get("/", (req, res) => {
-  res.send("Server OK");
+// 🔹 MySQL Connection
+const db = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT
 });
 
-// HEALTH
+db.connect(err => {
+  if (err) {
+    console.error("MySQL error:", err);
+  } else {
+    console.log("MySQL connected");
+  }
+});
+
+// 🔹 Health
 app.get("/health", (req, res) => {
   res.send("OK");
 });
 
-// ADMIN TRANSACTIONS
-app.get("/api/admin/transactions", (req, res) => {
-  res.json([]);
-});
-
-// BOOKING CREATE (POST ONLY)
+// 🔹 Create booking (BUYER)
 app.post("/api/booking/create", (req, res) => {
   const { buyer_id, seller_id, amount } = req.body;
-  res.json({
-    ok: true,
-    buyer_id,
-    seller_id,
-    amount
+
+  if (!buyer_id || !seller_id || !amount) {
+    return res.json({ ok: false, msg: "Missing fields" });
+  }
+
+  const sql = `
+    INSERT INTO transactions (buyer_id, seller_id, amount, status)
+    VALUES (?, ?, ?, 'OPEN')
+  `;
+
+  db.query(sql, [buyer_id, seller_id, amount], (err) => {
+    if (err) {
+      console.error(err);
+      return res.json({ ok: false });
+    }
+    res.json({ ok: true });
   });
+});
+
+// 🔹 Admin: list transactions
+app.get("/api/admin/transactions", (req, res) => {
+  db.query("SELECT * FROM transactions ORDER BY id DESC", (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.json([]);
+    }
+    res.json(rows);
+  });
+});
+
+// 🔹 Admin release (Buyer / Seller)
+app.post("/api/admin/release", (req, res) => {
+  const { tx_id, release_to } = req.body;
+
+  db.query(
+    "UPDATE transactions SET status='COMPLETED', released_to=? WHERE id=?",
+    [release_to, tx_id],
+    () => {
+      res.json({ ok: true });
+    }
+  );
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("FINAL SERVER RUNNING ON PORT " + PORT);
+  console.log("SERVER RUNNING ON PORT " + PORT);
 });
