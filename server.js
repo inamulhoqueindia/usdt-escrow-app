@@ -53,7 +53,7 @@ app.get("/init-db", (req, res) => {
       buyer_id INT,
       seller_id INT,
       amount DECIMAL(12,2),
-      status ENUM('OPEN','COMPLETED','CANCELLED') DEFAULT 'OPEN',
+      status ENUM('OPEN','APPROVED','REJECTED','COMPLETED') DEFAULT 'OPEN',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -105,7 +105,7 @@ app.post("/api/login", (req, res) => {
 app.post("/api/booking/create", (req, res) => {
   const { buyer_id, seller_id, amount } = req.body;
 
-  // check seller already locked?
+  // seller already locked?
   db.query(
     "SELECT * FROM transactions WHERE seller_id=? AND status='OPEN'",
     [seller_id],
@@ -114,23 +114,52 @@ app.post("/api/booking/create", (req, res) => {
         return res.status(400).json({ error: "Seller already booked" });
       }
 
+      // create booking
       db.query(
         "INSERT INTO transactions (buyer_id, seller_id, amount) VALUES (?,?,?)",
         [buyer_id, seller_id, amount],
-        () => res.json({ ok: true })
+        (e, result) => {
+          const txId = result.insertId;
+
+          // 🔥 AUTO-APPROVE TIMER (3 MINUTES)
+          setTimeout(() => {
+            db.query(
+              "UPDATE transactions SET status='COMPLETED' WHERE id=? AND status='OPEN'",
+              [txId],
+              () => {
+                console.log("Auto-approved booking:", txId);
+              }
+            );
+          }, 3 * 60 * 1000);
+
+          res.json({ ok: true, tx_id: txId });
+        }
       );
     }
   );
 });
 
 /* =========================
-   BOOKING COMPLETE (UNLOCK)
+   SELLER APPROVE
 ========================= */
-app.post("/api/booking/complete", (req, res) => {
+app.post("/api/booking/approve", (req, res) => {
   const { tx_id } = req.body;
 
   db.query(
-    "UPDATE transactions SET status='COMPLETED' WHERE id=?",
+    "UPDATE transactions SET status='APPROVED' WHERE id=? AND status='OPEN'",
+    [tx_id],
+    () => res.json({ ok: true })
+  );
+});
+
+/* =========================
+   SELLER REJECT
+========================= */
+app.post("/api/booking/reject", (req, res) => {
+  const { tx_id } = req.body;
+
+  db.query(
+    "UPDATE transactions SET status='REJECTED' WHERE id=? AND status='OPEN'",
     [tx_id],
     () => res.json({ ok: true })
   );
@@ -181,28 +210,6 @@ app.post("/api/wallet/deduct", (req, res) => {
         }
       );
     }
-  );
-});
-
-/* =========================
-   WALLET BALANCE
-========================= */
-app.get("/api/wallet/balance/:user_id", (req, res) => {
-  db.query(
-    "SELECT wallet FROM users WHERE id=?",
-    [req.params.user_id],
-    (err, rows) => res.json({ balance: rows[0].wallet })
-  );
-});
-
-/* =========================
-   WALLET LEDGER
-========================= */
-app.get("/api/wallet/ledger/:user_id", (req, res) => {
-  db.query(
-    "SELECT * FROM wallet_ledger WHERE user_id=? ORDER BY created_at DESC",
-    [req.params.user_id],
-    (err, rows) => res.json(rows)
   );
 });
 
