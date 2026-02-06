@@ -1,29 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Buyer Dashboard</title>
+  <title>Buyer Panel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="font-family:Arial; background:#f3f4f6; padding:20px;">
 
-  <h2>Buyer Dashboard</h2>
-
-  <div style="background:white; padding:20px; border-radius:8px; max-width:400px;">
-    <p><b>Booked Seller:</b> Rahul</p>
-    <p><b>USDT:</b> 300</p>
-    <p><b>Total INR:</b> ₹9000</p>
-    <p><b>Remaining:</b> ₹5000</p>
-
-    <button onclick="makePayment()" style="width:100%; padding:10px;">
-      MAKE PAYMENT
-    </button>
-  </div>
-
-  <script>
-    function makePayment() {
-      window.location.href = "/payment.html";
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
     }
-  </script>
+    h2 {
+      margin-bottom: 15px;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .box {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>🧑‍💼 Buyer Panel</h2>
+
+<div class="box">
+  <input id="buyer" placeholder="Buyer ID (example: 1)">
+  <input id="seller" placeholder="Seller ID (example: 2)">
+  <input id="amount" placeholder="Amount">
+
+  <button onclick="book()">Create Booking</button>
+</div>
+
+<script>
+async function book() {
+  const buyer = document.getElementById("buyer").value;
+  const seller = document.getElementById("seller").value;
+  const amount = document.getElementById("amount").value;
+
+  if (!buyer || !seller || !amount) {
+    alert("Fill all fields");
+    return;
+  }
+
+  const res = await fetch("/api/booking/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      buyer_id: buyer,
+      seller_id: seller,
+      amount: amount
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    alert("Booking created successfully!");
+  } else {
+    alert("Error creating booking");
+  }
+}
+</script>
 
 </body>
 </html>
