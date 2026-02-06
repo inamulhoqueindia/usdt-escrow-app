@@ -1,9 +1,137 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Admin Test</title>
-  </head>
-  <body>
-    <h1>ADMIN PAGE WORKING</h1>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+    h2 {
+      margin-bottom: 15px;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .row {
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .status {
+      font-weight: bold;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .buyer {
+      background: #2563eb;
+      color: white;
+    }
+    .seller {
+      background: #16a34a;
+      color: white;
+    }
+    .disabled {
+      background: #9ca3af;
+      color: white;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>👑 Admin Dashboard</h2>
+<div id="list">Loading...</div>
+
+<script>
+async function loadTransactions() {
+  const box = document.getElementById("list");
+  box.innerHTML = "Loading...";
+
+  try {
+    const res = await fetch("/api/admin/transactions");
+    const data = await res.json();
+
+    if (!data.length) {
+      box.innerHTML = "<p>No transactions found.</p>";
+      return;
+    }
+
+    box.innerHTML = "";
+
+    data.forEach(tx => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <div class="row"><b>TX ID:</b> ${tx.id}</div>
+        <div class="row"><b>Buyer ID:</b> ${tx.buyer_id}</div>
+        <div class="row"><b>Seller ID:</b> ${tx.seller_id}</div>
+        <div class="row"><b>Amount:</b> ₹${tx.amount}</div>
+        <div class="row status"><b>Status:</b> ${tx.status}</div>
+      `;
+
+      if (tx.status !== "COMPLETED") {
+        const btnBuyer = document.createElement("button");
+        btnBuyer.className = "buyer";
+        btnBuyer.innerText = "Release to Buyer";
+        btnBuyer.onclick = () => release(tx.id, "BUYER");
+
+        const btnSeller = document.createElement("button");
+        btnSeller.className = "seller";
+        btnSeller.innerText = "Release to Seller";
+        btnSeller.onclick = () => release(tx.id, "SELLER");
+
+        card.appendChild(btnBuyer);
+        card.appendChild(btnSeller);
+      } else {
+        const done = document.createElement("button");
+        done.className = "disabled";
+        done.innerText = "Completed";
+        card.appendChild(done);
+      }
+
+      box.appendChild(card);
+    });
+
+  } catch (e) {
+    box.innerHTML = "Error loading data";
+  }
+}
+
+async function release(txId, who) {
+  if (!confirm("Confirm release to " + who + "?")) return;
+
+  await fetch("/api/admin/release", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tx_id: txId,
+      release_to: who
+    })
+  });
+
+  alert("Amount released to " + who);
+  loadTransactions();
+}
+
+loadTransactions();
+</script>
+
+</body>
 </html>
