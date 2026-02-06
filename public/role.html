@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Select Role</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family:Arial; background:#f3f4f6; height:100vh; display:flex; justify-content:center; align-items:center;">
+
+  <div style="background:white; padding:30px; width:300px; border-radius:8px; text-align:center;">
+    <h2>Select Role</h2>
+
+    <button onclick="goBuyer()" style="width:100%; padding:10px; margin-bottom:10px;">
+      Buyer
+    </button>
+
+    <button onclick="goSeller()" style="width:100%; padding:10px;">
+      Seller
+    </button>
+  </div>
+
+  <script>
+    function goBuyer() {
+      window.location.href = "/buyer.html";
+    }
+
+    function goSeller() {
+      window.location.href = "/seller.html";
+    }
+  </script>
+
+</body>
+</html>

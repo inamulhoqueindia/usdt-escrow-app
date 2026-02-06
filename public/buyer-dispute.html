@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Buyer Dispute</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family:Arial; background:#f3f4f6; padding:20px;">
+
+  <h2>Payment Dispute</h2>
+
+  <div style="background:white; padding:20px; border-radius:8px; max-width:400px;">
+    <p><b>Status:</b> Seller rejected payment</p>
+    <p><b>Seller Proof:</b> (photo / video uploaded)</p>
+
+    <button onclick="approve()" style="width:100%; padding:10px; margin-bottom:10px;">
+      DISPUTE APPROVE
+    </button>
+
+    <button onclick="reject()" style="width:100%; padding:10px;">
+      DISPUTE REJECT
+    </button>
+  </div>
+
+  <script>
+    function approve() {
+      alert("Dispute approved by Buyer. Case closed.");
+      window.location.href = "/buyer.html";
+    }
+
+    function reject() {
+      alert("Both Buyer and Seller rejected. Admin will decide.");
+      window.location.href = "/admin.html";
+    }
+  </script>
+
+</body>
+</html>

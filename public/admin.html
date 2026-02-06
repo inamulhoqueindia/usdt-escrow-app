@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family:Arial; background:#f3f4f6; padding:20px;">
+
+  <h2>Admin Panel — Dispute Resolution</h2>
+
+  <div style="background:white; padding:20px; border-radius:8px; max-width:500px;">
+    <p><b>Buyer:</b> User123</p>
+    <p><b>Seller:</b> Rahul</p>
+    <p><b>Amount:</b> ₹2000</p>
+    <p><b>UTR:</b> ABC123456</p>
+
+    <p><b>Seller Proof:</b></p>
+    <p>(Photo / Video uploaded)</p>
+
+    <hr>
+
+    <button onclick="releaseBuyer()" style="width:100%; padding:10px; margin-bottom:10px;">
+      RELEASE TO BUYER
+    </button>
+
+    <button onclick="releaseSeller()" style="width:100%; padding:10px;">
+      RELEASE TO SELLER
+    </button>
+  </div>
+
+  <script>
+    function releaseBuyer() {
+      alert("Admin decided: Amount released to Buyer");
+      window.location.href = "/buyer.html";
+    }
+
+    function releaseSeller() {
+      alert("Admin decided: Amount released to Seller");
+      window.location.href = "/seller.html";
+    }
+  </script>
+
+</body>
+</html>

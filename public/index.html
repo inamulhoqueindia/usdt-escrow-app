@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>USDT Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family:Arial; background:#f3f4f6; display:flex; justify-content:center; align-items:center; height:100vh;">
+
+  <div style="background:white; padding:25px; width:300px; border-radius:8px;">
+    <h2>Login</h2>
+
+    <input type="text" placeholder="Phone number" style="width:100%; padding:10px;"><br><br>
+
+    <!-- IMPORTANT: onclick added -->
+    <button onclick="login()" style="width:100%; padding:10px;">
+      Send OTP
+    </button>
+
+  </div>
+
+  <script>
+    function login() {
+      // direct redirect to role page
+      window.location.href = "/role.html";
+    }
+  </script>
+
+</body>
+</html>

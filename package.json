@@ -1,0 +1,20 @@
+// USDT App - Basic Backend Server
+
+const express = require("express");
+const app = express();
+
+// Home route
+app.get("/", (req, res) => {
+  res.send("Server is running");
+});
+
+// Server start
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log("Server started on port " + PORT);
+});
+<script>
+  function login() {
+    window.location.href = "/role.html";
+  }
+</script>

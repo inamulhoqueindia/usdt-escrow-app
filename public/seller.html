@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seller Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family:Arial; background:#f3f4f6; padding:20px;">
+
+  <h2>Seller Dashboard</h2>
+
+  <div style="background:white; padding:20px; border-radius:8px; max-width:400px;">
+    
+    <p style="color:red; font-weight:bold;">
+      Time left: <span id="timer">03:00</span>
+    </p>
+
+    <p><b>Buyer:</b> User123</p>
+    <p><b>Amount:</b> ₹2000</p>
+    <p><b>UTR:</b> ABC123456</p>
+
+    <button onclick="approve()" style="width:100%; padding:10px; margin-bottom:10px;">
+      APPROVE
+    </button>
+
+    <button onclick="reject()" style="width:100%; padding:10px;">
+      REJECT
+    </button>
+  </div>
+
+  <script>
+    let time = 180; // 3 minutes
+
+    const timerInterval = setInterval(() => {
+      let minutes = Math.floor(time / 60);
+      let seconds = time % 60;
+
+      document.getElementById("timer").innerText =
+        String(minutes).padStart(2, "0") + ":" +
+        String(seconds).padStart(2, "0");
+
+      if (time <= 0) {
+        clearInterval(timerInterval);
+        alert("Auto Approved (Seller timeout)");
+        window.location.href = "/buyer.html";
+      }
+
+      time--;
+    }, 1000);
+
+    function approve() {
+      clearInterval(timerInterval);
+      alert("Payment Approved by Seller");
+    }
+
+    function reject() {
+      clearInterval(timerInterval);
+      window.location.href = "/seller-proof.html";
+    }
+  </script>
+
+</body>
+</html>

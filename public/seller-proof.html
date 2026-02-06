@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload Proof</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family:Arial; background:#f3f4f6; padding:20px;">
+
+  <h2>Seller Proof Upload</h2>
+
+  <div style="background:white; padding:20px; border-radius:8px; max-width:400px;">
+    <p>Upload photo or video proof</p>
+
+    <input type="file"><br><br>
+
+    <button onclick="submitProof()" style="width:100%; padding:10px;">
+      SUBMIT PROOF
+    </button>
+  </div>
+
+  <script>
+    function submitProof() {
+      alert("Proof submitted. Buyer will review.");
+      window.location.href = "/buyer-dispute.html";
+    }
+  </script>
+
+</body>
+</html>

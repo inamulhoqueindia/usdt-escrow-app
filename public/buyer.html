@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Buyer Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family:Arial; background:#f3f4f6; padding:20px;">
+
+  <h2>Buyer Dashboard</h2>
+
+  <div style="background:white; padding:20px; border-radius:8px; max-width:400px;">
+    <p><b>Booked Seller:</b> Rahul</p>
+    <p><b>USDT:</b> 300</p>
+    <p><b>Total INR:</b> ₹9000</p>
+    <p><b>Remaining:</b> ₹5000</p>
+
+    <button onclick="makePayment()" style="width:100%; padding:10px;">
+      MAKE PAYMENT
+    </button>
+  </div>
+
+  <script>
+    function makePayment() {
+      window.location.href = "/payment.html";
+    }
+  </script>
+
+</body>
+</html>
