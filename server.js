@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ---- MYSQL CONNECTION ----
+// ---------- MYSQL CONNECTION ----------
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -24,12 +24,12 @@ db.connect((err) => {
   }
 });
 
-// ---- HOME ----
+// ---------- HOME ----------
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ---- INIT DATABASE (ONE TIME ONLY) ----
+// ---------- INIT DB (ONE TIME) ----------
 app.get("/init-db", (req, res) => {
 
   const usersTable = `
@@ -58,12 +58,12 @@ app.get("/init-db", (req, res) => {
   res.send("Database initialized");
 });
 
-// ---- HEALTH CHECK ----
+// ---------- HEALTH ----------
 app.get("/health", (req, res) => {
   res.send("OK");
 });
 
-// ---- RENDER PORT ----
+// ---------- PORT ----------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("SERVER STARTED ON PORT " + PORT);
