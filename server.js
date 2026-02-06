@@ -1,12 +1,16 @@
 const express = require("express");
 const mysql = require("mysql2");
 const path = require("path");
+const multer = require("multer");
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static("public"));
+app.use("/uploads", express.static("uploads"));
 
-// 🔹 MySQL Connection
+/* ======================
+   MYSQL CONNECTION
+====================== */
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -23,84 +27,87 @@ db.connect(err => {
   }
 });
 
-// 🔹 Health
+/* ======================
+   FILE UPLOAD
+====================== */
+const upload = multer({
+  dest: "uploads/"
+});
+
+/* ======================
+   HEALTH
+====================== */
 app.get("/health", (req, res) => {
   res.send("OK");
 });
 
-// 🔹 Create booking (BUYER)
+/* ======================
+   BUYER CREATE BOOKING
+====================== */
 app.post("/api/booking/create", (req, res) => {
   const { buyer_id, seller_id, amount } = req.body;
 
-  if (!buyer_id || !seller_id || !amount) {
-    return res.json({ ok: false, msg: "Missing fields" });
-  }
-
-  const sql = `
-    INSERT INTO transactions (buyer_id, seller_id, amount, status)
-    VALUES (?, ?, ?, 'OPEN')
-  `;
-
-  db.query(sql, [buyer_id, seller_id, amount], (err) => {
-    if (err) {
-      console.error(err);
-      return res.json({ ok: false });
-    }
-    res.json({ ok: true });
-  });
-});
-
-// 🔹 Admin: list transactions
-app.get("/api/admin/transactions", (req, res) => {
-  db.query("SELECT * FROM transactions ORDER BY id DESC", (err, rows) => {
-    if (err) {
-      console.error(err);
-      return res.json([]);
-    }
-    res.json(rows);
-  });
-});
-
-// 🔹 Admin release (Buyer / Seller)
-app.post("/api/admin/release", (req, res) => {
-  const { tx_id, release_to } = req.body;
-
   db.query(
-    "UPDATE transactions SET status='COMPLETED', released_to=? WHERE id=?",
-    [release_to, tx_id],
-    () => {
+    "INSERT INTO transactions (buyer_id, seller_id, amount, status) VALUES (?, ?, ?, 'OPEN')",
+    [buyer_id, seller_id, amount],
+    err => {
+      if (err) {
+        console.error(err);
+        return res.json({ ok: false });
+      }
       res.json({ ok: true });
     }
   );
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("SERVER RUNNING ON PORT " + PORT);
-});
-
-
-app.get("/api/seller/pending", (req, res) => {
+/* ======================
+   BUYER OPEN BOOKINGS  ✅ FIX
+====================== */
+app.get("/api/buyer/open", (req, res) => {
   db.query(
     "SELECT * FROM transactions WHERE status='OPEN'",
+    (err, rows) => {
+      if (err) {
+        console.error(err);
+        return res.json([]);
+      }
+      res.json(rows);
+    }
+  );
+});
+
+/* ======================
+   BUYER PAYMENT SUBMIT
+====================== */
+app.post("/api/buyer/pay", upload.single("proof"), (req, res) => {
+  const { id, utr } = req.body;
+  const proof = req.file ? req.file.filename : null;
+
+  if (!id || !utr || !proof) {
+    return res.json({ ok: false });
+  }
+
+  db.query(
+    "UPDATE transactions SET status='PAID', released_to=? WHERE id=?",
+    [utr, id],
+    () => res.json({ ok: true })
+  );
+});
+
+/* ======================
+   ADMIN TRANSACTIONS
+====================== */
+app.get("/api/admin/transactions", (req, res) => {
+  db.query(
+    "SELECT * FROM transactions ORDER BY id DESC",
     (err, rows) => res.json(rows || [])
   );
 });
 
-app.post("/api/seller/approve", (req, res) => {
-  const { id } = req.body;
-  db.query(
-    "UPDATE transactions SET status='APPROVED', released_to='SELLER' WHERE id=?",
-    [id],
-    () => res.json({ ok: true })
-  );
-});
-
-app.post("/api/seller/reject", (req, res) => {
-  const { id } = req.body;
-  db.query(
-    "UPDATE transactions SET status='DISPUTE' WHERE id=?",
-    [id],
-    () => res.json({ ok: true })
-  );
+/* ======================
+   SERVER
+====================== */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("SERVER RUNNING ON PORT " + PORT);
 });
