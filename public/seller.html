@@ -1,62 +1,128 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Seller Dashboard</title>
+  <title>Seller Panel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f6f8;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 10px;
+      margin-right: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .approve {
+      background: #16a34a;
+      color: white;
+    }
+    .reject {
+      background: #dc2626;
+      color: white;
+    }
+    .timer {
+      color: #dc2626;
+      font-weight: bold;
+    }
+  </style>
 </head>
-<body style="font-family:Arial; background:#f3f4f6; padding:20px;">
 
-  <h2>Seller Dashboard</h2>
+<body>
 
-  <div style="background:white; padding:20px; border-radius:8px; max-width:400px;">
-    
-    <p style="color:red; font-weight:bold;">
-      Time left: <span id="timer">03:00</span>
-    </p>
+<h2>🧑‍💼 Seller Panel</h2>
 
-    <p><b>Buyer:</b> User123</p>
-    <p><b>Amount:</b> ₹2000</p>
-    <p><b>UTR:</b> ABC123456</p>
+<div id="list"></div>
 
-    <button onclick="approve()" style="width:100%; padding:10px; margin-bottom:10px;">
-      APPROVE
-    </button>
+<script>
+async function load() {
+  const res = await fetch("/api/seller/pending");
+  const data = await res.json();
 
-    <button onclick="reject()" style="width:100%; padding:10px;">
-      REJECT
-    </button>
-  </div>
+  const box = document.getElementById("list");
+  box.innerHTML = "";
 
-  <script>
-    let time = 180; // 3 minutes
+  if (data.length === 0) {
+    box.innerHTML = "<p>No pending bookings</p>";
+    return;
+  }
 
-    const timerInterval = setInterval(() => {
-      let minutes = Math.floor(time / 60);
-      let seconds = time % 60;
+  data.forEach(tx => {
+    const div = document.createElement("div");
+    div.className = "card";
 
-      document.getElementById("timer").innerText =
-        String(minutes).padStart(2, "0") + ":" +
-        String(seconds).padStart(2, "0");
+    let seconds = 180;
 
-      if (time <= 0) {
-        clearInterval(timerInterval);
-        alert("Auto Approved (Seller timeout)");
-        window.location.href = "/buyer.html";
+    const timer = setInterval(() => {
+      seconds--;
+      span.innerText = seconds;
+      if (seconds <= 0) {
+        clearInterval(timer);
+        approve(tx.id, true);
       }
-
-      time--;
     }, 1000);
 
-    function approve() {
-      clearInterval(timerInterval);
-      alert("Payment Approved by Seller");
-    }
+    const span = document.createElement("span");
+    span.className = "timer";
+    span.innerText = seconds;
 
-    function reject() {
-      clearInterval(timerInterval);
-      window.location.href = "/seller-proof.html";
-    }
-  </script>
+    div.innerHTML = `
+      <p><b>TX ID:</b> ${tx.id}</p>
+      <p>Buyer: ${tx.buyer_id}</p>
+      <p>Amount: ${tx.amount}</p>
+      <p>Auto approve in <span class="timer">${seconds}</span> sec</p>
+    `;
+
+    div.appendChild(span);
+
+    const a = document.createElement("button");
+    a.innerText = "Approve";
+    a.className = "approve";
+    a.onclick = () => approve(tx.id);
+
+    const r = document.createElement("button");
+    r.innerText = "Reject";
+    r.className = "reject";
+    r.onclick = () => reject(tx.id);
+
+    div.appendChild(a);
+    div.appendChild(r);
+
+    box.appendChild(div);
+  });
+}
+
+async function approve(id, auto = false) {
+  await fetch("/api/seller/approve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, auto })
+  });
+  load();
+}
+
+async function reject(id) {
+  await fetch("/api/seller/reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id })
+  });
+  load();
+}
+
+load();
+</script>
 
 </body>
 </html>

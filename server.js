@@ -78,3 +78,29 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("SERVER RUNNING ON PORT " + PORT);
 });
+
+
+app.get("/api/seller/pending", (req, res) => {
+  db.query(
+    "SELECT * FROM transactions WHERE status='OPEN'",
+    (err, rows) => res.json(rows || [])
+  );
+});
+
+app.post("/api/seller/approve", (req, res) => {
+  const { id } = req.body;
+  db.query(
+    "UPDATE transactions SET status='APPROVED', released_to='SELLER' WHERE id=?",
+    [id],
+    () => res.json({ ok: true })
+  );
+});
+
+app.post("/api/seller/reject", (req, res) => {
+  const { id } = req.body;
+  db.query(
+    "UPDATE transactions SET status='DISPUTE' WHERE id=?",
+    [id],
+    () => res.json({ ok: true })
+  );
+});
